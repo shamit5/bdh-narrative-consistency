@@ -1,7 +1,11 @@
 # Baby Dragon Hatchling (BDH) Consistency Reasoning System
 
-**Author:** Shamit Kumar (<66158990+shamit5@users.noreply.github.com>)
+**Author:** Shamit Kumar
 
 ## Overview
 
-An individual research project implementing a Baby Dragon Hatchling (BDH)-inspired neural consistency reasoning network. The system evaluates whether hypothetical character backstories causally and logically align with full-length novel narratives (100k+ words) without context window truncation.
+A neural consistency reasoning system designed to evaluate whether hypothetical character backstories are causally and logically compatible with long-form novel narratives (100k+ words).
+
+The system enforces a closed-world assumption and conservative minimum-score verification to prevent the surface-plausibility errors common in generative LLMs.
+
+See [`BDH_Narrative_Consistency_Report.pdf`](./BDH_Narrative_Consistency_Report.pdf) for the full technical paper and architectural analysis.
