@@ -1,7 +1,12 @@
+import os
+from pathlib import Path
 import torch
 import pandas as pd
 import torch.nn.functional as F
 from model_up import BDH, BDHConfig
+
+# Root path resolution: works whether run from root or "Entire codebase"
+ROOT_DIR = Path(__file__).resolve().parent.parent if (Path(__file__).resolve().parent.parent / "data").exists() else Path(".")
 
 def tokenize(text):
     return torch.tensor([ord(c) % 256 for c in text], dtype=torch.long)
@@ -17,21 +22,35 @@ def make_chunks(tokens, chunk_size=512, overlap=128):
 def normalize_book_name(name):
     return name.strip().lower()
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-config = BDHConfig(n_layer=4, n_embd=128, n_head=4, mlp_internal_dim_multiplier=8, vocab_size=256)
+device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
+
+config = BDHConfig(
+    n_layer=4,
+    n_embd=128,
+    n_head=4,
+    mlp_internal_dim_multiplier=8,
+    vocab_size=256
+)
+
 model = BDH(config).to(device)
 optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 
-df = pd.read_csv("data/train.csv")
-df["label"] = df["label"].str.strip().str.lower().map({"consistent": 1, "contradict": 0})
+# Load Train CSV
+train_csv_path = ROOT_DIR / "data" / "train.csv"
+df = pd.read_csv(train_csv_path)
+df["label"] = (
+    df["label"].str.strip().str.lower()
+    .map({"consistent": 1, "contradict": 0})
+)
 assert df["label"].isna().sum() == 0
 df = df[df["content"].notna()].reset_index(drop=True)
 train_df = df.sample(frac=0.8, random_state=42).reset_index(drop=True)
 
 BOOK_PATHS = {
-    "The Count of Monte Cristo": "Books/The Count of Monte Cristo.txt",
-    "In Search of the Castaways": "Books/In search of the castaways.txt",
+    "The Count of Monte Cristo": ROOT_DIR / "Books" / "The Count of Monte Cristo.txt",
+    "In Search of the Castaways": ROOT_DIR / "Books" / "In search of the castaways.txt",
 }
 
 def build_book_state(model, text):
@@ -51,7 +70,10 @@ for name, path in BOOK_PATHS.items():
         book_states[normalize_book_name(name)] = build_book_state(model, f.read())
 
 def condition_on_character(model, book_state, character):
-    prompt = f"The following statements concern the character {character}. Only consider facts and history established in the story."
+    prompt = (
+        f"The following statements concern the character {character}. "
+        f"Only consider facts and history established in the story."
+    )
     tokens = tokenize(prompt).unsqueeze(0).to(device)
     with torch.no_grad():
         return model(tokens, state=book_state)[2]
@@ -59,6 +81,7 @@ def condition_on_character(model, book_state, character):
 epochs = 30
 model.train()
 epoch_thresholds = []
+
 for ep in range(epochs):
     pos_scores, neg_scores = [], []
     total_loss = 0.0
@@ -96,6 +119,7 @@ for ep in range(epochs):
     print(f"Epoch {ep+1:02d} | Loss {total_loss:.3f} | Cons {mean_pos:.3f} | Contr {mean_neg:.3f}")
 
 final_threshold = sum(epoch_thresholds[-5:]) / 5 if len(epoch_thresholds) >= 5 else epoch_thresholds[-1]
-torch.save(model.state_dict(), "bdh_trained.pt")
-torch.save({"threshold": final_threshold}, "threshold.pt")
+torch.save(model.state_dict(), ROOT_DIR / "bdh_trained.pt")
+torch.save({"threshold": final_threshold}, ROOT_DIR / "threshold.pt")
 print("✅ Training complete")
+print("✅ Threshold:", final_threshold)

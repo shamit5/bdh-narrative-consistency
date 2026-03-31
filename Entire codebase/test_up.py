@@ -1,6 +1,10 @@
+from pathlib import Path
 import torch
 import pandas as pd
 from model_up import BDH, BDHConfig
+
+# Root path resolution: works whether run from root or "Entire codebase"
+ROOT_DIR = Path(__file__).resolve().parent.parent if (Path(__file__).resolve().parent.parent / "data").exists() else Path(".")
 
 def tokenize(text):
     return torch.tensor([ord(c) % 256 for c in text], dtype=torch.long)
@@ -16,19 +20,30 @@ def make_chunks(tokens, chunk_size=512, overlap=128):
 def normalize_book_name(name):
     return name.strip().lower()
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-config = BDHConfig(n_layer=4, n_embd=128, n_head=4, mlp_internal_dim_multiplier=8, vocab_size=256)
-model = BDH(config).to(device)
-model.load_state_dict(torch.load("bdh_trained.pt", map_location=device))
-model.eval()
-threshold = torch.load("threshold.pt")["threshold"]
+device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
+config = BDHConfig(
+    n_layer=4,
+    n_embd=128,
+    n_head=4,
+    mlp_internal_dim_multiplier=8,
+    vocab_size=256
+)
 
-df = pd.read_csv("data/test.csv")
+model = BDH(config).to(device)
+weights_file = ROOT_DIR / "bdh_trained.pt"
+if weights_file.exists():
+    model.load_state_dict(torch.load(weights_file, map_location=device))
+model.eval()
+
+thresh_file = ROOT_DIR / "threshold.pt"
+threshold = torch.load(thresh_file, map_location=device)["threshold"] if thresh_file.exists() else 0.835
+
+df = pd.read_csv(ROOT_DIR / "data" / "test.csv")
 df = df[df["content"].notna()].reset_index(drop=True)
 
 BOOK_PATHS = {
-    "The Count of Monte Cristo": "Books/The Count of Monte Cristo.txt",
-    "In Search of the Castaways": "Books/In search of the castaways.txt",
+    "The Count of Monte Cristo": ROOT_DIR / "Books" / "The Count of Monte Cristo.txt",
+    "In Search of the Castaways": ROOT_DIR / "Books" / "In search of the castaways.txt",
 }
 
 def build_book_state(model, text):
@@ -48,7 +63,10 @@ for name, path in BOOK_PATHS.items():
         book_states[normalize_book_name(name)] = build_book_state(model, f.read())
 
 def condition_on_character(model, book_state, character):
-    prompt = f"The following statements concern the character {character}. Only consider facts established in the story."
+    prompt = (
+        f"The following statements concern the character {character}. "
+        f"Only consider facts established in the story."
+    )
     tokens = tokenize(prompt).unsqueeze(0).to(device)
     with torch.no_grad():
         return model(tokens, state=book_state)[2]
@@ -76,5 +94,5 @@ with torch.no_grad():
         results.append([row.id, pred, f"min_score={final_score:.3f}"])
 
 out_df = pd.DataFrame(results, columns=["id", "prediction", "rationale"])
-out_df.to_csv("results.csv", index=False)
-print(" Saved results.csv")
+out_df.to_csv(ROOT_DIR / "results.csv", index=False)
+print("✅ Saved results.csv")
