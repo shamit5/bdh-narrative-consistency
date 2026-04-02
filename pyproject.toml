@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bdh-narrative-consistency"
+version = "1.0.0"
+description = "Baby Dragon Hatchling (BDH) Long-Context Narrative Consistency Reasoning System"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Shamit Kumar", email = "66158990+shamit5@users.noreply.github.com"}
+]
+keywords = [
+    "deep-learning",
+    "nlp",
+    "consistency-reasoning",
+    "narrative-analysis",
+    "state-space-models",
+    "bdh",
+    "long-context"
+]
+dependencies = [
+    "torch>=2.0.0",
+    "pandas>=1.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+bdh-infer = "bdh_consistency.infer:main"
+bdh-train = "bdh_consistency.train:main"
+bdh-eval = "bdh_consistency.evaluate:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
