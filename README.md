@@ -211,10 +211,26 @@ Read the comprehensive 10-page research paper: [`BDH_Narrative_Consistency_Repor
 
 ---
 
-## 💼 Resume Highlights (STAR / XYZ Format)
+## 📄 Technical Report & Citation
 
-#### For Machine Learning Engineer / AI Researcher Portfolios:
-- **Architected Long-Context Consistency Model**: Independently designed and implemented a Baby Dragon Hatchling (BDH) neural reasoning framework in PyTorch, classifying character backstory consistency across 100k+ word novels with $O(1)$ constant test-time memory footprint.
-- **Engineered Gated State-Space Dynamics**: Formulated a surprise-gated belief update mechanism ($\exp(-S_t)$ attenuation) and state-mediated attention heads, accumulating narrative constraints without quadratic context-window overhead.
-- **Formulated Minimum-Score Decision Rule**: Developed a conservative contradiction aggregator rejecting backstories upon a single constraint violation, outperforming generative LLMs prone to surface plausibility confusion.
-- **Productionized ML Pipeline**: Built end-to-end training and inference pipelines with threshold calibration across character subsets, packaging reproducible modules with unit testing (`pytest`) and MPS hardware acceleration.
+Read the comprehensive 10-page research paper: [`BDH_Narrative_Consistency_Report.pdf`](./BDH_Narrative_Consistency_Report.pdf), featuring:
+- Detailed BDH developmental learning analysis
+- State transition proofs and surprise-gating dynamics
+- Comparative evaluation and ablation study on long narrative corpora
+
+If you use this work or reference the benchmarks, please cite:
+
+```bibtex
+@article{kumar2026bdh,
+  title   = {Baby Dragon Hatchling-Based Consistency Reasoning System for Long-Form Narratives},
+  author  = {Kumar, Shamit},
+  year    = {2026},
+  url     = {https://github.com/shamit5/bdh-narrative-consistency}
+}
+```
+
+---
+
+## 📜 License
+
+This project is open-source and available under the [MIT License](LICENSE).
